@@ -20,11 +20,25 @@
 
 ## 2. 文本字面量内联（P2，随 #1 一起纳入版本控制）
 
-- 文件：`shortcutgen.go`（`attachmentValues()` 判断"不含插值"后直接内联进 Set Variable，不再多生成一个 Text 动作）
+- 文件：`shortcutgen.go`（`makeVariableInput` 里"不含插值"的分支直接内联进 Set Variable，不再多生成一个 Text 动作）
 - 为什么：`@x = "纯字面量"` 本不需要一个独立的 Text 动作。
-- 冲突指引：与上游对 Set Variable 生成逻辑的改动**最容易冲突**，解冲突时以"字面量内联仍然生效"为准。
+- **后续修正（P2 续）**：内联的值写成显式 `WFTextTokenString{string: …}`，而不是裸 plist 字符串。
+  Shortcuts 里文本值一律序列化为 `WFTextTokenString`，参考插件校验器也会把裸字符串报成
+  "missing WFTextTokenString"。注意用 `map[string]any` 而不是 `WFTextTokenStringValue` 结构 ——
+  后者的 `String` 字段带 `omitempty`，空串会被整个丢掉、产出 `{"Value":{}}`（更不合规）。
+  同时把原来的插值探测从 `val.(map[string]any)` 改成具体类型断言：`attachmentValues()` 对插值串
+  返回的是 **`WFTextTokenString` 结构体**（不是 map），所以旧探测永远不成立。
+- 冲突指引：与上游对 Set Variable 生成逻辑的改动**最容易冲突**，解冲突时以"字面量内联仍然生效、
+  且值是显式 `WFTextTokenString`"为准。
 
-## 3. richtext 强制转换支持（本提交）
+## 3. 空触发器键不写（P3）
+
+- 文件：`shortcut.go`（`Shortcut.WFWorkflowTriggers` 加 `plist:",omitempty"`）
+- 为什么：没有自动化触发器时，这个空数组键是纯样板；Shortcuts 视"缺键"与"空数组"等价。
+  省掉后产物少一个键，参考校验器也少一条空参数告警。
+- 冲突指引：上游若给 `Shortcut` 结构体加字段，保留这个 `omitempty` 标签即可。
+
+## 4. richtext 强制转换支持
 
 - 文件：`actions/{basic,crypto,images,text}.cherri`、`shortcut.go`、`variables.go`、`cherri_test.go`、`tests/*`
 - 为什么：Shortcuts 的 "Get Images"（`detect.images`）只有在输入被**显式 coercion 为富文本**

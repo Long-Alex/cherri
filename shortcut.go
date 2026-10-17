@@ -27,7 +27,7 @@ type Shortcut struct {
 	WFWorkflowHasShortcutInputVariables  bool
 	WFWorkflowHasOutputFallback          bool
 	WFWorkflowNoInputBehavior            map[string]any
-	WFWorkflowTriggers                   []AutomationTrigger
+	WFWorkflowTriggers                   []AutomationTrigger `plist:",omitempty"`
 }
 
 var shortcut Shortcut

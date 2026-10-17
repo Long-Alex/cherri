@@ -184,16 +184,22 @@ func makeVariableInput(t *token, params map[string]any) {
 		//（踩坑：@x = "data:image/png;base64,{b64}" 在真机上得到空串）。
 		// 判据：attachmentValues() 的结果里有没有 attachmentsByRange。
 		var val = attachmentValues(literal)
-		var interpolated bool
-		if outer, ok := val.(map[string]any); ok {
-			if inner, ok2 := outer["Value"].(map[string]any); ok2 {
-				_, interpolated = inner["attachmentsByRange"]
+		if bare, isBare := val.(string); isBare {
+			// 【本地补丁 P2】非插值字面量：写成显式文本令牌 WFTextTokenString{string: …}，
+			// 而不是裸字符串。依据：Shortcuts 里文本值一律序列化为 WFTextTokenString
+			// （参考插件校验器也期望该形态，裸字符串会被报"缺 WFTextTokenString"）。
+			// 注：用 map 而非 WFTextTokenStringValue —— 后者 String 字段带 omitempty，
+			// 空串会被整个丢掉、产出 {"Value":{}}，正是要修掉的不合规形态。
+			params["WFInput"] = map[string]any{
+				"Value":               map[string]any{"string": bare},
+				"WFSerializationType": "WFTextTokenString",
 			}
-		}
-		if !interpolated {
+		} else {
+			// 含 {变量} 插值：attachmentValues 已返回带 attachmentsByRange 的
+			// WFTextTokenString，直接内联（由它自己完成占位符解析）。
 			params["WFInput"] = val
-			return
 		}
+		return
 	}
 
 	makeVariableValueAction(t, &outputName, &varUUID)
