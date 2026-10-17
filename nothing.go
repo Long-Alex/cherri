@@ -100,35 +100,14 @@ func pruneInertNothings() int {
 	}
 
 	var removed = make([]bool, len(actions))
-	var kept = make([]ShortcutAction, 0, len(actions))
 	for i := range actions {
 		if actions[i].WFWorkflowActionIdentifier == nothingActionIdent && nothingIsInert(actions, i) {
 			removed[i] = true
-			continue
 		}
-		kept = append(kept, actions[i])
 	}
 
-	var count = len(actions) - len(kept)
-	if count == 0 {
-		return 0
-	}
-
-	shortcut.WFWorkflowActions = kept
-
-	// Import questions reference their action by index; shift each one down by the number of
-	// actions pruned in front of it.
-	for _, q := range questions {
-		var shift int
-		for i := 0; i < q.actionIndex && i < len(removed); i++ {
-			if removed[i] {
-				shift++
-			}
-		}
-		q.actionIndex -= shift
-	}
-
-	return count
+	// removeActions() rebuilds the action list and remaps import question indices.
+	return removeActions(removed)
 }
 
 // nothingIsInert reports whether the nothing action at index i can be removed without changing

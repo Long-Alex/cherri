@@ -47,10 +47,15 @@ func generateShortcut() {
 
 	generateActions()
 
+	// Drop pass-through intermediates (pure alias Set Variables and single-consumer
+	// detect.text conversions — see prune_intermediates.go). Previous behaviour was to strip
+	// them from the compiled plist in a post-processing step in the consuming project.
+	pruneIntermediates()
+
 	// Drop `nothing` actions that addNothing() inserted at control flow endings but that are
 	// provably inert (see nothing.go). Previous behaviour was to strip them from the compiled
 	// plist in a post-processing step. Must run before generateImportQuestions(): pruning shifts
-	// action indices, and pruneInertNothings() remaps the recorded question indices to match.
+	// action indices, and the passes remap the recorded question indices to match.
 	pruneInertNothings()
 
 	// Must run after generateActions(): question.actionIndex is only populated

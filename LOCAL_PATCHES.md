@@ -46,6 +46,34 @@
   （表现为：页面 HTML 被当成纯文本，取不到任何图像）。
 - 冲突指引：上游若扩充类型表，保留 `richtext` → `WFRichTextContentItem` 这一项即可。
 
+## 5. 生成期去掉"纯转手中转"动作（P4 / P5）
+
+- 文件：`prune_intermediates.go`（新增）、`shortcutgen.go`（`generateActions()` 之后调用
+  `pruneIntermediates()`）、`nothing.go`（把"删动作 + 重映射 import question 下标"抽成共用的
+  `removeActions()`）
+- 为什么：cherri 为每个可变赋值生成一个 Set Variable、为每个 `getText()` 生成一个
+  `detect.text`。其中相当一部分是**纯转手**——语言里没有"就在这里用这个引用"的表达式，只能先
+  存进变量/转成文本再用：
+  - **P4 `pruneAliasSetVariables`**：Set Variable 的唯一非空赋值就是一个引用（变量/魔法变量/
+    动作输出），且所有读取都在它之后 ⇒ 读取直接指向该引用，删掉 Set Variable 与它的空初始化。
+  - **P5 `pruneTextConversions`**：`detect.text` 的输出**只被消费一次**，且消费方本来就会把输入
+    转成文本（Count 按 Characters 计、词典键、文件路径、或纯转手的 Set Variable）⇒ 删掉转换，
+    消费方直接拿原引用。
+- 安全性（都 fail-closed，无法证明就不动）：
+  - 动作输出做来源时要求别名写入与**所有**读取在**同一控制流作用域**内（否则生产者可能没执行过，
+    读到的是空值而不是旧值）；
+  - 魔法变量（Repeat Item / Shortcut Input …）恒在作用域内，无需检查；
+  - 一般变量做来源时要求它是"快照"：对该变量的每次写入要么是空初始化，要么与别名写入在
+    **同一控制流块**内且在它之前（对应 `@latitudeText = getText(@latitude)` 紧跟
+    `@latitude = …` 的写法）；
+  - 删除前再确认"没有任何动作还在读这个变量"、"每个读取点都真的被改写"。
+- 收益：`camera-watermark` 的主快捷指令 253 → 240 个动作；消费方的
+  `simplify_intermediate_steps.py`（493 行、9 条按变量名硬编码的规则）已经没有活可干，已退役删除。
+- 冲突指引：这两个 pass 只读 `shortcut.WFWorkflowActions` 的**结构**（ident / 参数树 / 控制流
+  模式），与具体动作定义无关；上游若改 `ShortcutAction`/`Value` 的字段形态，只需要调整
+  `prune_intermediates.go` 里的反射遍历（`walkValues` / `mapValues`）与 `singleRef`。
+  另注意：`nothing.go` 与它共用 `removeActions()`，删动作时 import question 下标必须同步平移。
+
 ## 同步上游的方式
 
 ```bash
