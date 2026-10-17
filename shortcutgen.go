@@ -47,6 +47,12 @@ func generateShortcut() {
 
 	generateActions()
 
+	// Drop `nothing` actions that addNothing() inserted at control flow endings but that are
+	// provably inert (see nothing.go). Previous behaviour was to strip them from the compiled
+	// plist in a post-processing step. Must run before generateImportQuestions(): pruning shifts
+	// action indices, and pruneInertNothings() remaps the recorded question indices to match.
+	pruneInertNothings()
+
 	// Must run after generateActions(): question.actionIndex is only populated
 	// once each action referencing it has actually been generated.
 	shortcut.WFWorkflowImportQuestions = generateImportQuestions()
@@ -162,6 +168,32 @@ func makeVariableInput(t *token, params map[string]any) {
 		uuids[outputName] = varUUID
 	} else {
 		varUUID = uuids[outputName]
+	}
+
+	// 【本地补丁】赋文本字面量时直接把值内联进 Set Variable，不再多生成一个 Text 动作。
+	// 上游行为：@x = "none" → Text("none") + Set Variable(x)   （2 步）
+	// 补丁行为：@x = "none" → Set Variable(x, 值="none")        （1 步）
+	// 注意：必须复用 attachmentValues()，否则 "{变量}" 插值不会被解析成 attachmentsByRange。
+	if t.valueType == String || t.valueType == RawString {
+		var literal string
+		if t.value != nil {
+			literal = fmt.Sprintf("%s", t.value)
+		}
+		// 【本地补丁】只内联【不含插值】的字面量。
+		// 含 "{变量}" 的字符串不能内联：真机上那会把 attachment 丢掉 ⇒ 变量变成空值
+		//（踩坑：@x = "data:image/png;base64,{b64}" 在真机上得到空串）。
+		// 判据：attachmentValues() 的结果里有没有 attachmentsByRange。
+		var val = attachmentValues(literal)
+		var interpolated bool
+		if outer, ok := val.(map[string]any); ok {
+			if inner, ok2 := outer["Value"].(map[string]any); ok2 {
+				_, interpolated = inner["attachmentsByRange"]
+			}
+		}
+		if !interpolated {
+			params["WFInput"] = val
+			return
+		}
 	}
 
 	makeVariableValueAction(t, &outputName, &varUUID)
@@ -411,14 +443,28 @@ func variableValueWithSerialization(variable varValue, serializationType string)
 		if variable.valueType == Variable && variableReference.valueType != "" {
 			refValueType = variableReference.valueType
 		}
+		// 常量经 insertReference 存储时 valueType 恒为 Variable，动作输出类型信息丢失；
+		// 从所存动作定义恢复真实输出类型，否则词典类动作输出（如 getDictionary: dictionary）
+		// 的参数级键访问会错误发出属性聚合，而 Shortcuts 运行时要求词典键用
+		// WFDictionaryValueVariableAggrandizement（与 Shortcuts UI 生成的形态一致）。
+		if refValueType != Dict {
+			if a, ok := variableReference.value.(action); ok && a.def != nil && a.def.outputType == Dict {
+				refValueType = Dict
+			}
+		}
 		if refValueType == Dict {
 			aggrandizements = append(aggrandizements, Aggrandizement{
 				Type:          "WFDictionaryValueVariableAggrandizement",
 				DictionaryKey: variable.getAs,
 			})
 		} else {
+			// "Name" 属性用 item-name getter，与 Shortcuts UI 生成的 WFItemName 形式一致
+			var propertyUserInfo any = 0
+			if variable.getAs == "Name" {
+				propertyUserInfo = "WFItemName"
+			}
 			aggrandizements = append(aggrandizements, Aggrandizement{
-				PropertyUserInfo: 0,
+				PropertyUserInfo: propertyUserInfo,
 				Type:             "WFPropertyVariableAggrandizement",
 				PropertyName:     variable.getAs,
 			})
