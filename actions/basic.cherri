@@ -138,7 +138,9 @@ action 'getvalueforkey' getValues(dictionary dictionary: 'WFInput'): array {
 }
 
 // [Doc]: [Dictionaries] Get Value from Dictionary: For constants only, otherwise `dictionary['key']` syntax should be used.
-action 'getvalueforkey' getValue(dictionary dictionary: 'WFInput', text key: 'WFDictionaryKey'): variable {
+// 输入放宽为 variable：词典可能来自任何动作输出（如 Choose from List 返回的嵌套词典值），
+// 编译期无法断言其真实类型，运行时按词典取值即可。
+action 'getvalueforkey' getValue(variable dictionary: 'WFInput', text key: 'WFDictionaryKey'): variable {
 	"WFGetDictionaryValueType": "Value"
 }
 
@@ -157,7 +159,7 @@ action chooseFromList(
     text ?prompt: 'WFChooseFromListActionPrompt',
     bool ?selectMultiple: 'WFChooseFromListActionSelectMultiple' = false,
     bool ?selectAll: 'WFChooseFromListActionSelectAll' = false
-)
+): text
 
 // [Doc]: [Lists] Get First Item: Get first item in a list.
 action 'getitemfromlist' getFirstItem(variable list: 'WFInput'): variable {

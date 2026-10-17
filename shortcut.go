@@ -216,6 +216,7 @@ var colors = map[string]int{
 	"purple":     3679049983,
 	"pink":       3980825855,
 	"darkgray":   255,
+	"black":      168430335,
 	"gray":       3031607807,
 	"taupe":      2846468607,
 }
@@ -235,6 +236,7 @@ var altColors = map[string]int{
 	"purple":     -615917313,
 	"pink":       -314141441,
 	"darkgray":   -4294967041,
+	"black":      -4126536961,
 	"gray":       -1263359489,
 	"taupe":      -1448498689,
 }

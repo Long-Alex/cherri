@@ -1,0 +1,16 @@
+// compile-only: aggrandizement plist shapes (WFItemName property getter, contact coercion) are verified by plist inspection; Choose from List prompts are interactive
+const vcf = downloadURL("https://example.com/contact.vcf", nil)
+const card = setName(vcf, "contact.vcf")
+const picked = chooseFromList(card.contact, "Pick one")
+
+// property aggrandizement on a conditional left side must emit PropertyName "Name" + PropertyUserInfo "WFItemName"
+@match = "no"
+if picked['Name'] == "sample" { @match = "yes" }
+
+// dict-value path via getValue (['key'] shorthand is const-restricted, see #208)
+const data = getDictionary(vcf)
+const leaf = getValue(data, "Version")
+@leafText = "{leaf}"
+if @leafText == "3.0" { @match = "yes" }
+
+show("✅ All tests passed {@match}")

@@ -36,3 +36,6 @@
 
 # Nix
 result
+
+# 本地编译产物（预编译二进制，不进仓库）
+/cherri-main

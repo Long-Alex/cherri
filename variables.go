@@ -218,6 +218,9 @@ func duplicateOutputName() string {
 	return currentOutputName
 }
 
+// createUUID 生成动作 UUID。Shortcuts 真身（含 127 快捷指令语料与 App 导出）
+// 中的 UUID 全部为大写形式，VARIABLES.md 也规定必须大写；统一在此转换，
+// 保证派生（derive-uuids）与随机两种来源一致。
 func createUUID(salt *string) string {
 	var deterministic = args.Using("derive-uuids")
 	if deterministic {
@@ -225,10 +228,10 @@ func createUUID(salt *string) string {
 			[]byte(workflowName),
 			[]byte(*salt),
 		}
-		return deterministicUUID(seeds...)
+		return strings.ToUpper(deterministicUUID(seeds...))
 	}
 
-	return uuid.New().String()
+	return strings.ToUpper(uuid.New().String())
 }
 
 // deterministicUUID returns a UUID derived from the given pieces.

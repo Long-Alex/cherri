@@ -26,6 +26,14 @@ if decodedStr != "hello" {
     mustOutput("❌ FAIL: base64Decode — got {decoded}, expected 'hello'", "❌ FAIL: base64Decode — got {decoded}, expected 'hello'")
 }
 
+// base64 of text longer than 76 chars must contain no line breaks
+// (GitHub contents API rejects base64 broken by line wrapping)
+@longText = "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."
+const longEncoded = base64Encode(@longText)
+if longEncoded != "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4gVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4gVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4g" {
+    mustOutput("❌ FAIL: base64Encode long text — got {longEncoded}", "❌ FAIL: base64Encode long text — got {longEncoded}")
+}
+
 // SHA512 and MD5: compile-only coverage (MD5 is hash default)
 const sha512 = hash(@input, "SHA512")
 const md5 = hash(@input)

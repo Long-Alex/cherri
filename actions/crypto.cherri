@@ -4,7 +4,8 @@ Cryptography Actions
 
 // [Doc]: Base 64 Encode: Base 64 encodes input.
 action default 'base64encode' base64Encode(variable encodeInput: 'WFInput'): text {
-	"input": "Encode"
+	"WFEncodeMode": "Encode",
+	"WFBase64LineBreakMode": "None"
 }
 
 // [Doc]: Base 64 Decode: Base 64 decodes input.

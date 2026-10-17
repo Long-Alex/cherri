@@ -183,6 +183,8 @@ func TestActionIdentifiers(t *testing.T) {
 		"is.workflow.actions.text.match.getgroup",
 		"notion.id.CreatePageIntent",
 		"com.apple.facetime.facetime",
+		"is.workflow.actions.list",
+		"is.workflow.actions.image.combine",
 	}
 
 	var actual []string

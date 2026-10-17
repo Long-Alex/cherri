@@ -4,11 +4,12 @@ Images Actions
 
 enum imageCombineMode {
     'Vertically',
+    'Horizontally',
     'In a Grid'
 }
 
 // [Doc]: [Image Editing] Combine Images
-action combineImages(variable images: 'WFInput', imageCombineMode ?mode: 'WFImageCombineMode' = "Vertically", number ?spacing: 'WFImageCombineSpacing' = 1)
+action 'image.combine' combineImages(variable images: 'WFInput', imageCombineMode ?mode: 'WFImageCombineMode' = "Vertically", number ?spacing: 'WFImageCombineSpacing' = 1)
 
 enum cropImagePosition {
 	'Center',
@@ -144,7 +145,7 @@ enum imageDetail {
 action 'properties.images' getImageDetail(variable image: 'WFInput', imageDetail detail: 'WFContentItemPropertyName')
 
 // [Doc]: [Image Editing] Make Image from Rich Text
-action makeImageFromRichText(variable pdf: 'WFInput', text width: 'WFWidth', text height: 'WFHeight')
+action makeImageFromRichText(variable pdf: 'WFInput', text width: 'WFWidth', variable height: 'WFHeight')
 
 // [Doc]: [Image Editing] Extract Image Text
 action 'extracttextfromimage' extractImageText(variable image: 'WFImage'): text
